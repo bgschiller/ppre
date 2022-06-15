@@ -1,13 +1,7 @@
 import type { Macronutrient, Meal, Plan } from "@prisma/client";
-import {
-  Link,
-  useActionData,
-  useFetcher,
-  useFetchers,
-  useLoaderData,
-} from "@remix-run/react";
+import { Link, useFetcher, useFetchers, useLoaderData } from "@remix-run/react";
 import type { ActionFunction, LoaderFunction } from "@remix-run/server-runtime";
-import { redirect, json } from "@remix-run/server-runtime";
+import { redirect } from "@remix-run/server-runtime";
 import { useEffect, useRef } from "react";
 import invariant from "tiny-invariant";
 import { prisma } from "~/db.server";
@@ -44,11 +38,27 @@ async function createMacronutrient(
   }
 }
 
-type ActionData = {
-  _action: "add-macronutrient";
-  errors: { name?: string };
-  values: { name?: string };
-};
+async function delMacronutrient(
+  data: FormData,
+  planId: string
+): Promise<string | null> {
+  const name = data.get("name") as string;
+
+  return prisma.macronutrient
+    .delete({
+      where: { planId_name: { planId, name } },
+    })
+    .then(() => null)
+    .catch((err) => err.toString());
+}
+
+type ActionData =
+  | { _action: "del-macronutrient"; error: string }
+  | {
+      _action: "add-macronutrient";
+      errors: { name?: string };
+      values: { name?: string };
+    };
 
 export const action: ActionFunction = async ({
   request,
@@ -61,7 +71,11 @@ export const action: ActionFunction = async ({
   const _action = body.get("_action");
   if (_action === "add-macronutrient") {
     const [errors] = await createMacronutrient(body, planId);
-    if (errors) return json({ errors, values: Object.fromEntries(body) });
+    if (errors) return { errors, values: Object.fromEntries(body), _action };
+    return redirect(request.url);
+  } else if (_action === "del-macronutrient") {
+    const error = await delMacronutrient(body, planId);
+    if (error) return { error, _action };
     return redirect(request.url);
   } else {
     throw new Error("unknown action: " + _action);
@@ -76,7 +90,6 @@ interface LoaderData {
 }
 
 export const loader: LoaderFunction = async ({
-  request,
   params,
 }): Promise<LoaderData> => {
   const planId = params.planId;
@@ -127,6 +140,28 @@ function NewMacro() {
   );
 }
 
+function Macro({ planId, name }: { name: string; planId?: string }) {
+  const fetcher = useFetcher();
+  if (!planId)
+    return (
+      <li>
+        {name}
+        <button>&times;</button>
+      </li>
+    );
+  const isDeleting = fetcher.state !== "idle";
+  return (
+    <li className={isDeleting ? "hidden" : "flex"} hidden={isDeleting}>
+      <Link to={`/plans/edit/${planId}/macros/${name}`}>{name}</Link>
+      <fetcher.Form method="post">
+        <input type="hidden" name="_action" value="del-macronutrient" />
+        <input type="hidden" name="name" value={name} />
+        <input type="submit" value="&times;" />
+      </fetcher.Form>
+    </li>
+  );
+}
+
 function EditMacros({ plan }: Pick<LoaderData, "plan">) {
   const fetchers = useFetchers();
   const inProgressMacros = fetchers
@@ -142,14 +177,10 @@ function EditMacros({ plan }: Pick<LoaderData, "plan">) {
       <h2>Macronutrients</h2>
       <ul>
         {plan.macros.map((m) => (
-          <li key={m.name}>
-            <Link to={`/plans/edit/${m.planId}/macros/${m.name}`}>
-              {m.name}
-            </Link>
-          </li>
+          <Macro key={m.name} {...m} />
         ))}
-        {inProgressMacros.map((m, ix) => (
-          <li key={`in-progress:${m}`}>{m}</li>
+        {inProgressMacros.map((m) => (
+          <Macro key={`in-progress:${m}`} name={m} />
         ))}
       </ul>
       <NewMacro />
