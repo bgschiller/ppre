@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# skip setting the usual safety options, because we actually prefer for this script
+# to limp along, even if something goes wrong in the middle
+# set -euo pipefail
+
+readonly SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+cd $SCRIPT_DIR/..
+
+if (! ls .git >/dev/null 2>&1) || [[ $(ls .git/refs/heads | wc -l) = 0 ]]; then
+  read -p "This looks like an unintialized repository. Are you sure you want to make changes before committing? "
+  if [[ ! $REPLY =~ ^[Yy] ]]; then
+    exit 1
+  fi
+fi
+
+
+echo prisma app/models app/routes/{notes,join.tsx,login.tsx,logout.tsx,notes.tsx} app/db.server.ts cypress/support scripts/tunnel-db |
+xargs --verbose -n1 rm -rf
+
+# Can't use sed because the -i inplace flag differs between GNU and BSD sed (BSD is used on MacOS)
+echo 'g/getUser/d
+x' | ex -s app/root.tsx
+echo 'g/prisma/d
+x' | ex -s app/routes/api/health.tsx
+echo 'g/DATABASE_URL/d
+x' | ex -s envrc.example
+echo 'g/import { getUserById /d
+g/export async function getUser(/,/^\}/d
+g/export async function requireUser(/,/^\}/d
+x' | ex -s app/session.server.ts
+echo 'g/user.server/d
+g/function isUser(/,/^\}/d
+g/function useOptionalUser(/,/^\}/d
+g/function useUser(/,/^\}/d
+x' | ex -s app/utils.ts
+echo 'g/prisma/d
+g/openssl/d
+x' | ex -s Dockerfile
+echo 'g/PGDATABASE/,/^fi/d
+x' | ex -s docker-start.sh
+echo 'g/name: "Register"/d
+g/name: "Login"/d
+x' | ex -s app/components/Footer.tsx
+
+echo '%s/database: true/database: false/g
+x' | ex -s cdk/bin/cdk.ts
+echo 'g/"prisma": {/
+-1,+1d
+x' | ex -s package.json
+npm uninstall prisma @prisma/client
+
+# this one is too loud, so send its output to /dev/null
+npm run format > /dev/null
+rm scripts/remove-db

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# skip setting the usual safety options, because we actually prefer for this script
+# to limp along, even if something goes wrong in the middle
+# set -euo pipefail
+
+readonly SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+cd $SCRIPT_DIR/..
+
+if (! ls .git >/dev/null 2>&1) || [[ $(ls .git/refs/heads | wc -l) = 0 ]]; then
+  read -p "This looks like an unintialized repository. Are you sure you want to make changes before committing? "
+  if [[ ! $REPLY =~ ^[Yy] ]]; then
+    exit 1
+  fi
+fi
+
+echo contentful app/contentful app/@types/generated/contentful.d.ts app/route-utils.tsx 'app/routes/$slug.tsx' app/routes/blog app/routes/search.tsx |
+xargs --verbose -n1 rm -rf
+
+npm uninstall @contentful/rich-text-react-renderer @contentful/rich-text-types contentful contentful-management
+
+if grep ContentfulPageComponent app/routes/index.tsx > /dev/null; then
+  cat > app/routes/index.tsx << EOF
+export default function Index() {
+  return <main>TODO: make a home page to replace the one from contentful</main>;
+}
+EOF
+fi
+
+echo 'g/- name: Contentful migrations/,/npm run migrate/d
+d
+x' | ex -s .github/workflows/main.yml
+
+echo 'g/CONTENTFUL/d
+x' | ex -s .envrc.example
+
+echo 'g/contentful/d
+x' | ex -s .prettierignore
+
+rm scripts/remove-contentful

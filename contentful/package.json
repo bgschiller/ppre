@@ -1,0 +1,17 @@
+{
+  "name": "cartamundi-contentful-migrations",
+  "version": "1.0.0",
+  "description": "Contentful Strategy -------------------",
+  "main": "index.js",
+  "scripts": {
+    "bootstrap": "npx @bgschiller/contentful-migrate bootstrap --write-typedefs ../app/@types/generated/contentful.d.ts",
+    "generate-typedefs": "npx @bgschiller/contentful-migrate download --write-typedefs ../app/@types/generated/contentful.d.ts",
+    "create": "npx @bgschiller/contentful-migrate create",
+    "migrate": "npx @bgschiller/contentful-migrate up"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@bgschiller/contentful-migrate": "^0.18.7"
+  }
+}
