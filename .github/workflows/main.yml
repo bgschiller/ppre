@@ -157,37 +157,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-1
 
-      - name: Contentful migrations
-        working-directory: contentful
-        env:
-          CI: true
-          CONTENTFUL_SPACE_ID: ${{ env.CONTENTFUL_SPACE_ID }}
-          CONTENTFUL_MANAGEMENT_ACCESS_TOKEN: ${{ secrets.CONTENTFUL_MANAGEMENT_ACCESS_TOKEN }}
-        run: |
-          STAGE=${{ steps.inspect-env.outputs.stage }}
-          npm install
-          if [[ -z "${CONTENTFUL_SPACE_ID-}" ]]; then
-            echo "Skipping migrations, as this project does not have a CONTENTFUL_SPACE_ID set"
-            exit 0
-          elif [[ $CONTENTFUL_SPACE_ID = "jcdjo56lmw8q" ]]; then
-            echo "Skipping migrations, as this project does not have permission to migrate the demo contentful space."
-            exit 0
-          fi
-
-          if [[ $STAGE == 'production' ]]; then
-            export CONTENTFUL_ENV_ID=master
-          elif curl \
-              --header "Authorization: Bearer $CONTENTFUL_MANAGEMENT_ACCESS_TOKEN" \
-              https://api.contentful.com/spaces/$CONTENTFUL_SPACE_ID/environments \
-              | jq -r  '.items | .[] | .sys.id' | grep $STAGE; then
-            # if there is a contentful environment named for the current stage, migrate that.
-            export CONTENTFUL_ENV_ID=$STAGE
-          else
-            echo "Unable to find a contentful environment whose name matches this deploy stage (STAGE=$STAGE)"
-            exit 1
-          fi
-          npm run migrate
-
       - name: Deploy everything
         working-directory: cdk
         run: npx cdk deploy DeptDash-${{ steps.inspect-env.outputs.project-name }}-${{ steps.inspect-env.outputs.stage }} --require-approval never
