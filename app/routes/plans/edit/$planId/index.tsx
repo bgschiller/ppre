@@ -212,9 +212,7 @@ function mkEditItems({
     const inProgressItems = fetchers
       .filter(
         (f) =>
-          f.submission &&
-          f.submission.action === `/plans/edit/${plan.id}` &&
-          f.submission.formData.get("_action") === addAction
+          f.submission && f.submission.formData.get("_action") === addAction
       )
       .map((f) => f.submission?.formData.get(name) as string);
     return (
