@@ -25,8 +25,8 @@ export function Nav({ sticky = false }: NavProps) {
       }`}
     >
       <div className="leading-[40px]">
-        <Link to="/">
-          <img src={logoImage} alt="Logo" className="inline-block w-[120px]" />
+        <Link className="bolder text-xl" to="/">
+          Planned Pattern of Regular Eating
         </Link>
       </div>
       <div className="">
@@ -37,9 +37,6 @@ export function Nav({ sticky = false }: NavProps) {
             </Link>
           ))}
         </span>
-        <Button to="/contact-us" className="ml-4 hidden sm:inline-block">
-          Contact Us
-        </Button>
         <Popover.Button
           className="ml-4 inline-block w-10 cursor-pointer align-top lg:hidden"
           aria-label="Open navigation menu"

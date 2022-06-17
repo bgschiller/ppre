@@ -4,6 +4,7 @@ import type { ActionFunction, LoaderFunction } from "@remix-run/server-runtime";
 import { redirect } from "@remix-run/server-runtime";
 import { useEffect, useRef } from "react";
 import invariant from "tiny-invariant";
+import { LabelledInput } from "~/components/LabelledInput";
 import { prisma } from "~/db.server";
 
 type CreateMacronutrientReturn =
@@ -13,7 +14,8 @@ async function createMacronutrient(
   data: FormData,
   planId: string
 ): Promise<CreateMacronutrientReturn> {
-  const name = data.get("name");
+  const name = data.get("newMacro");
+  console.log("name is", name);
   if (!name || typeof name !== "string")
     return [{ name: "Must pass a name for the macronutrient" }, null];
   try {
@@ -29,7 +31,7 @@ async function createMacronutrient(
     if (/Unique constraint failed on the fields/.test(err as string)) {
       return [
         {
-          name: `There is already a macronutrient called "${name}" for this plan`,
+          newMacro: `There is already a macronutrient called "${name}" for this plan`,
         },
         null,
       ];
@@ -56,8 +58,8 @@ type ActionData =
   | { _action: "del-macronutrient"; error: string }
   | {
       _action: "add-macronutrient";
-      errors: { name?: string };
-      values: { name?: string };
+      errors: { newMacro?: string };
+      values: { newMacro?: string };
     };
 
 export const action: ActionFunction = async ({
@@ -120,23 +122,19 @@ function NewMacro() {
     }
   }, [fetcher.state]);
   return (
-    <>
-      <fetcher.Form method="post" ref={formRef}>
-        <label>
-          new macronutrient
-          <input
-            name="name"
-            type="text"
-            defaultValue={actionData?.values.name}
-          />
-        </label>
-        <input type="hidden" name="_action" value="add-macronutrient" />
-        <input type="submit" value="Add" />
-      </fetcher.Form>
-      {actionData?.errors.name ? (
-        <p style={{ color: "red" }}>{actionData.errors.name}</p>
-      ) : null}
-    </>
+    <fetcher.Form method="post" ref={formRef}>
+      <LabelledInput
+        name="newMacro"
+        placeholder="eg, Protein"
+        defaultValue={actionData?.values.newMacro}
+        label="New macronutrient"
+        button={{
+          action: "add-macronutrient",
+          text: "Add",
+        }}
+        error={actionData?.errors.newMacro}
+      />
+    </fetcher.Form>
   );
 }
 
@@ -171,10 +169,10 @@ function EditMacros({ plan }: Pick<LoaderData, "plan">) {
         f.submission.action === `/plans/edit/${plan.id}` &&
         f.submission.formData.get("_action") === "add-macronutrient"
     )
-    .map((f) => f.submission?.formData.get("name") as string);
+    .map((f) => f.submission?.formData.get("newMacro") as string);
   return (
-    <>
-      <h2>Macronutrients</h2>
+    <section className="my-10">
+      <h2 className="mb-2 text-lg">Macronutrients</h2>
       <ul>
         {plan.macros.map((m) => (
           <Macro key={m.name} {...m} />
@@ -183,8 +181,11 @@ function EditMacros({ plan }: Pick<LoaderData, "plan">) {
           <Macro key={`in-progress:${m}`} name={m} />
         ))}
       </ul>
+      {plan.macros.length === 0 && inProgressMacros.length === 0 ? (
+        <p className="mb-2">(none so far)</p>
+      ) : null}
       <NewMacro />
-    </>
+    </section>
   );
 }
 
@@ -192,13 +193,26 @@ export default function EditPlan() {
   const { plan } = useLoaderData<LoaderData>();
 
   return (
-    <main className="flex flex-col">
-      <h1>Edit your plan</h1>
+    <main className="align-center mx-auto flex flex-col">
+      <h1 className="mb-10 text-xl">Edit your plan</h1>
 
-      <label>
-        Plan name
-        <input defaultValue={plan.name || ""} />
-      </label>
+      <section className="my-10">
+        <label
+          htmlFor="plan-name"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Plan name
+        </label>
+        <div className="mt-1">
+          <input
+            type="text"
+            name="plan-name"
+            id="plan-name"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder="eg, your daily needs"
+          />
+        </div>
+      </section>
 
       <EditMacros plan={plan} />
     </main>
