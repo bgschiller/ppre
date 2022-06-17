@@ -6,38 +6,18 @@ import { useEffect, useRef } from "react";
 import invariant from "tiny-invariant";
 import { LabelledInput } from "~/components/LabelledInput";
 import { prisma } from "~/db.server";
+import { createMacronutrient, createMeal } from "~/models/plan.server";
+import { assertUnreachable } from "~/utils";
 
-type CreateMacronutrientReturn =
-  | [errors: null, macro: Macronutrient]
-  | [errors: Record<string, string>, macro: null];
-async function createMacronutrient(
-  data: FormData,
-  planId: string
-): Promise<CreateMacronutrientReturn> {
-  const name = data.get("newMacro");
-  console.log("name is", name);
-  if (!name || typeof name !== "string")
-    return [{ name: "Must pass a name for the macronutrient" }, null];
-  try {
-    const macro = await prisma.macronutrient.create({
-      data: {
-        name,
-        planId,
-        guidance: "",
-      },
-    });
-    return [null, macro];
-  } catch (err) {
-    if (/Unique constraint failed on the fields/.test(err as string)) {
-      return [
-        {
-          newMacro: `There is already a macronutrient called "${name}" for this plan`,
-        },
-        null,
-      ];
-    }
-    throw err;
-  }
+async function delMeal(data: FormData, planId: string): Promise<string | null> {
+  const name = data.get("name") as string;
+
+  return prisma.meal
+    .delete({
+      where: { planId_name: { planId, name } },
+    })
+    .then(() => null)
+    .catch((err) => err.toString());
 }
 
 async function delMacronutrient(
@@ -56,10 +36,16 @@ async function delMacronutrient(
 
 type ActionData =
   | { _action: "del-macronutrient"; error: string }
+  | { _action: "del-meal"; error: string }
   | {
       _action: "add-macronutrient";
       errors: { newMacro?: string };
       values: { newMacro?: string };
+    }
+  | {
+      _action: "add-meal";
+      errors: { newMeal?: string };
+      values: { newMeal?: string };
     };
 
 export const action: ActionFunction = async ({
@@ -70,18 +56,25 @@ export const action: ActionFunction = async ({
   invariant(planId, "planId is part of route and can never be undefined");
 
   const body = await request.formData();
-  const _action = body.get("_action");
+  const _action = body.get("_action") as ActionData["_action"];
   if (_action === "add-macronutrient") {
     const [errors] = await createMacronutrient(body, planId);
+    if (errors) return { errors, values: Object.fromEntries(body), _action };
+    return redirect(request.url);
+  } else if (_action === "add-meal") {
+    const [errors] = await createMeal(body, planId);
     if (errors) return { errors, values: Object.fromEntries(body), _action };
     return redirect(request.url);
   } else if (_action === "del-macronutrient") {
     const error = await delMacronutrient(body, planId);
     if (error) return { error, _action };
     return redirect(request.url);
-  } else {
-    throw new Error("unknown action: " + _action);
+  } else if (_action === "del-meal") {
+    const error = await delMeal(body, planId);
+    if (error) return { error, _action };
+    return redirect(request.url);
   }
+  assertUnreachable(_action);
 };
 
 interface LoaderData {
@@ -109,94 +102,166 @@ export const loader: LoaderFunction = async ({
   };
 };
 
-function NewMacro() {
-  const fetcher = useFetcher();
-  const formRef = useRef<HTMLFormElement | null>(null);
-  let actionData: ActionData | null = fetcher.data;
-  if (actionData?._action !== "add-macronutrient") {
-    actionData = null;
-  }
-  useEffect(() => {
-    if (fetcher.state === "submitting") {
-      formRef.current?.reset();
-    }
-  }, [fetcher.state]);
-  return (
-    <fetcher.Form method="post" ref={formRef}>
-      <LabelledInput
-        name="newMacro"
-        placeholder="eg, Protein"
-        defaultValue={actionData?.values.newMacro}
-        label="New macronutrient"
-        button={{
-          action: "add-macronutrient",
-          text: "Add",
-        }}
-        error={actionData?.errors.newMacro}
-      />
-    </fetcher.Form>
-  );
+function mkNewItem({
+  addAction,
+  name,
+  placeholder,
+  label,
+}: {
+  addAction: "add-meal" | "add-macronutrient";
+  name: string;
+  placeholder: string;
+  label: string;
+}) {
+  return function NewItem() {
+    const fetcher = useFetcher();
+    const formRef = useRef<HTMLFormElement | null>(null);
+    let actionData_: ActionData | null = fetcher.data;
+    let actionData = actionData_?._action === addAction ? actionData_ : null;
+    useEffect(() => {
+      if (fetcher.state === "submitting") {
+        formRef.current?.reset();
+      }
+    }, [fetcher.state]);
+    return (
+      <fetcher.Form method="post" ref={formRef}>
+        <LabelledInput
+          name={name}
+          placeholder={placeholder}
+          defaultValue={(actionData?.values as any)?.[name]}
+          label={label}
+          button={{
+            action: addAction,
+            text: "Add",
+          }}
+          error={(actionData?.errors as any)?.[name]}
+        />
+      </fetcher.Form>
+    );
+  };
 }
 
-function Macro({ planId, name }: { name: string; planId?: string }) {
-  const fetcher = useFetcher();
-  if (!planId)
+function mkItem({
+  urlPart,
+  delAction,
+}: {
+  urlPart: string;
+  delAction: string;
+}) {
+  return function Item({ planId, name }: { name: string; planId?: string }) {
+    const fetcher = useFetcher();
+    if (!planId)
+      return (
+        <li className="py-1">
+          {name}
+          <div className="ml-4 inline-block">
+            <button>&times;</button>
+          </div>
+        </li>
+      );
+    const isDeleting = fetcher.state !== "idle";
     return (
-      <li>
-        {name}
-        <button>&times;</button>
+      <li className={`py-1 ${isDeleting ? "text-slate-500" : ""}`}>
+        <Link to={`/plans/edit/${planId}/${urlPart}/${name}`}>{name}</Link>
+        <fetcher.Form method="post" className="ml-4 inline-block">
+          <input type="hidden" name="_action" value={delAction} />
+          <input type="hidden" name="name" value={name} />
+          <input
+            type="submit"
+            className="cursor-pointer"
+            aria-label={`remove ${name}`}
+            value="&times;"
+          />
+        </fetcher.Form>
       </li>
     );
-  const isDeleting = fetcher.state !== "idle";
-  return (
-    <li className={isDeleting ? "hidden" : "flex"} hidden={isDeleting}>
-      <Link to={`/plans/edit/${planId}/macros/${name}`}>{name}</Link>
-      <fetcher.Form method="post">
-        <input type="hidden" name="_action" value="del-macronutrient" />
-        <input type="hidden" name="name" value={name} />
-        <input type="submit" value="&times;" />
-      </fetcher.Form>
-    </li>
-  );
+  };
+}
+const NewMeal = mkNewItem({
+  addAction: "add-meal",
+  placeholder: "eg, Breakfast",
+  label: "New meal",
+  name: "newMeal",
+});
+const NewMacro = mkNewItem({
+  addAction: "add-macronutrient",
+  placeholder: "eg, Protein",
+  label: "New macronutrient",
+  name: "newMacro",
+});
+const MealItem = mkItem({ urlPart: "meal", delAction: "del-meal" });
+const MacroItem = mkItem({ urlPart: "macros", delAction: "del-macronutrient" });
+
+function mkEditItems({
+  Item,
+  NewItem,
+  addAction,
+  name,
+  key,
+  label,
+}: {
+  Item: typeof MealItem;
+  NewItem: typeof NewMeal;
+  addAction: string;
+  name: string;
+  label: string;
+  key: "macros" | "meals";
+}) {
+  return function EditItems({ plan }: Pick<LoaderData, "plan">) {
+    const fetchers = useFetchers();
+    const inProgressItems = fetchers
+      .filter(
+        (f) =>
+          f.submission &&
+          f.submission.action === `/plans/edit/${plan.id}` &&
+          f.submission.formData.get("_action") === addAction
+      )
+      .map((f) => f.submission?.formData.get(name) as string);
+    return (
+      <section className="my-5">
+        <h2 className="mb-2 text-lg">{label}</h2>
+        <ul className="ml-4 list-disc pb-2">
+          {plan[key].map((m) => (
+            <Item key={m.name} {...m} />
+          ))}
+          {inProgressItems.map((m) => (
+            <Item key={`in-progress:${m}`} name={m} />
+          ))}
+        </ul>
+        {plan[key].length === 0 && inProgressItems.length === 0 ? (
+          <p className="mb-2">(none so far)</p>
+        ) : null}
+        <NewItem />
+      </section>
+    );
+  };
 }
 
-function EditMacros({ plan }: Pick<LoaderData, "plan">) {
-  const fetchers = useFetchers();
-  const inProgressMacros = fetchers
-    .filter(
-      (f) =>
-        f.submission &&
-        f.submission.action === `/plans/edit/${plan.id}` &&
-        f.submission.formData.get("_action") === "add-macronutrient"
-    )
-    .map((f) => f.submission?.formData.get("newMacro") as string);
-  return (
-    <section className="my-10">
-      <h2 className="mb-2 text-lg">Macronutrients</h2>
-      <ul>
-        {plan.macros.map((m) => (
-          <Macro key={m.name} {...m} />
-        ))}
-        {inProgressMacros.map((m) => (
-          <Macro key={`in-progress:${m}`} name={m} />
-        ))}
-      </ul>
-      {plan.macros.length === 0 && inProgressMacros.length === 0 ? (
-        <p className="mb-2">(none so far)</p>
-      ) : null}
-      <NewMacro />
-    </section>
-  );
-}
+const EditMacros = mkEditItems({
+  key: "macros",
+  Item: MacroItem,
+  NewItem: NewMacro,
+  addAction: "add-macronutrient",
+  label: "Macronutrients",
+  name: "newMacro",
+});
+const EditMeals = mkEditItems({
+  key: "meals",
+  Item: MealItem,
+  NewItem: NewMeal,
+  addAction: "add-meal",
+  label: "Meals",
+  name: "newMeal",
+});
 
 export default function EditPlan() {
   const { plan } = useLoaderData<LoaderData>();
 
   return (
     <main className="align-center mx-auto flex flex-col">
-      <h1 className="mb-10 text-xl">Edit your plan</h1>
+      <h1 className="mb-5 text-xl">Edit your plan</h1>
 
-      <section className="my-10">
+      <section className="my-5">
         <label
           htmlFor="plan-name"
           className="block text-sm font-medium text-gray-700"
@@ -215,6 +280,7 @@ export default function EditPlan() {
       </section>
 
       <EditMacros plan={plan} />
+      <EditMeals plan={plan} />
     </main>
   );
 }
