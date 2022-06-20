@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -11,7 +10,7 @@ async function seed() {
     // no worries if it doesn't exist yet
   });
 
-  prisma.plan.create({
+  const plan = await prisma.plan.create({
     data: {
       id: planId,
       name: "Testing plan",
@@ -33,7 +32,73 @@ async function seed() {
           ],
         },
       },
+      meals: {
+        createMany: {
+          data: [
+            {
+              name: "Breakfast",
+            },
+            {
+              name: "Morning snack",
+            },
+            {
+              name: "Lunch",
+            },
+            { name: "Afternoon snack" },
+            {
+              name: "Dinner",
+            },
+          ],
+        },
+      },
     },
+  });
+
+  await prisma.mealNeed.createMany({
+    data: [
+      {
+        planId: plan.id,
+        mealName: "Breakfast",
+        macroName: "Protein",
+        minimum: 1,
+        maximum: 3,
+      },
+      {
+        planId: plan.id,
+        mealName: "Breakfast",
+        macroName: "Carbs",
+        minimum: 2,
+        maximum: 2,
+      },
+      {
+        planId: plan.id,
+        mealName: "Breakfast",
+        macroName: "Fats",
+        minimum: 2,
+        maximum: 3,
+      },
+      {
+        planId: plan.id,
+        mealName: "Morning snack",
+        macroName: "Protein",
+        minimum: 0,
+        maximum: 1,
+      },
+      {
+        planId: plan.id,
+        mealName: "Morning snack",
+        macroName: "Carbs",
+        minimum: 1,
+        maximum: 1,
+      },
+      {
+        planId: plan.id,
+        mealName: "Morning snack",
+        macroName: "Fats",
+        minimum: 0,
+        maximum: 1,
+      },
+    ],
   });
 
   console.log(`Database has been seeded. 🌱`);
