@@ -31,7 +31,7 @@ export function Checkbox(props: CheckboxProps) {
           y="-2"
           stroke="currentColor"
           fill="none"
-          stroke-width="3"
+          strokeWidth="3"
           strokeDasharray={props.dashed ? "6" : undefined}
           rx="6"
           ry="6"
@@ -40,7 +40,7 @@ export function Checkbox(props: CheckboxProps) {
           className="cb-cm"
           points="4,14 12,23 28,5"
           stroke="transparent"
-          stroke-width="4"
+          strokeWidth="4"
           fill="none"
         ></polyline>
       </svg>

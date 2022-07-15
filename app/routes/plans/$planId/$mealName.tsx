@@ -1,15 +1,19 @@
 import type { Plan, Macronutrient, Meal, MealNeed } from "@prisma/client";
 import { useLoaderData } from "@remix-run/react";
 import type { LoaderFunction } from "@remix-run/server-runtime";
+import { ChangeEvent, useMemo } from "react";
 import invariant from "tiny-invariant";
-import { Button } from "~/components/Button";
+import { Checkbox, links as checkboxLinks } from "~/components/Checkbox";
 import { prisma } from "~/db.server";
+import { useMatchesData } from "~/utils";
+import { useDailyCheckbox } from "../daily-checkboxes";
+import { LoaderData as PlanDetailData } from "./index";
+
+export function links() {
+  return [...checkboxLinks()];
+}
 
 interface LoaderData {
-  plan: Plan & {
-    macros: Macronutrient[];
-    meals: Meal[];
-  };
   mealName: string;
   needs: MealNeed[];
 }
@@ -20,52 +24,73 @@ export const loader: LoaderFunction = async ({
   const mealName = params.mealName;
   invariant(planId, "planId is part of route and can never be undefined");
   invariant(mealName, "mealName is part of route and can never be undefined");
-  const plan = await prisma.plan.findUnique({
-    where: { id: planId },
-    rejectOnNotFound: true,
-    include: {
-      macros: true,
-      meals: true,
-    },
-  });
   const needs = await prisma.mealNeed.findMany({
     where: { planId, mealName },
   });
   return {
-    plan,
     mealName,
     needs,
   };
+};
+
+type MacroRowProps = Pick<MealNeed, "macroName" | "minimum" | "maximum"> & {
+  onChange(args: { macroName: string; count: number }): void;
+  value: number;
 };
 
 function MacroRow({
   macroName,
   minimum,
   maximum,
-}: Pick<MealNeed, "macroName" | "minimum" | "maximum">) {
+  value,
+  onChange,
+}: MacroRowProps) {
   if (maximum === 0) return null;
+
+  function tickChange(e: ChangeEvent<HTMLInputElement>) {
+    onChange({ macroName, count: value + (e.target.checked ? 1 : -1) });
+  }
 
   return (
     <div className="flex flex-row">
-      <span>{macroName}</span>
+      <span className="w-24">{macroName}</span>
       <div className="flex flex-row items-center">
         {Array(maximum)
           .fill(null)
           .map((_, ix) => (
-            <input className="m-2" key={ix} type="checkbox" />
+            <Checkbox
+              key={ix}
+              dashed={ix > minimum}
+              checked={ix < value}
+              onChange={tickChange}
+            />
           ))}
       </div>
     </div>
   );
 }
 export default function PlanView() {
-  const { plan, needs } = useLoaderData<LoaderData>();
+  const { mealName, needs } = useLoaderData<LoaderData>();
+  const { plan } = useMatchesData(
+    "routes/plans/$planId"
+  ) as unknown as PlanDetailData;
+
+  const store = useDailyCheckbox();
+  const mealState = store.meals[mealName];
+  const onTickChange: MacroRowProps["onChange"] = ({ macroName, count }) => {
+    store.setTicks({ meal: mealName, macro: macroName, ticks: count });
+  };
   return (
-    <main className="mx-auto">
-      <h1 className="text-xl">{plan.name || "(untitled-plan)"}</h1>
+    <main className="mx-auto w-64">
+      <h1 className="mb-4 text-xl">{mealName}</h1>
       <div className="flex flex-col">
         {needs.map((n) => (
-          <MacroRow key={n.macroName} {...n} />
+          <MacroRow
+            key={n.macroName}
+            {...n}
+            value={mealState?.ticks?.[n.macroName] || 0}
+            onChange={onTickChange}
+          />
         ))}
       </div>
     </main>

@@ -5,7 +5,7 @@ import invariant from "tiny-invariant";
 import { Button } from "~/components/Button";
 import { prisma } from "~/db.server";
 
-interface LoaderData {
+export interface LoaderData {
   plan: Plan & {
     macros: Macronutrient[];
     meals: Meal[];
@@ -31,16 +31,22 @@ export const loader: LoaderFunction = async ({
 
 function WaterDroplets({ total }: { total: number }) {
   return (
-    <div className="flex flex-col ml-4">
-      {Array(total).fill(null).map((_, ix) => (
-        <span key={ix}>💧</span>
-      ))}
+    <div className="ml-4 flex flex-col">
+      {Array(total)
+        .fill(null)
+        .map((_, ix) => (
+          <span key={ix}>💧</span>
+        ))}
     </div>
   );
 }
 
 function MealButton({ meal }: { meal: Meal }) {
-  return <Button className="my-2" to={`/plans/${meal.planId}/${meal.name}`}>{meal.name}</Button>;
+  return (
+    <Button className="my-2" to={`/plans/${meal.planId}/${meal.name}`}>
+      {meal.name}
+    </Button>
+  );
 }
 
 export default function PlanView() {
@@ -50,9 +56,9 @@ export default function PlanView() {
       <h1 className="text-xl">{plan.name || "(untitled-plan)"}</h1>
       <div className="flex flex-row">
         <div className="flex flex-col">
-        {plan.meals.map((m) => (
-          <MealButton key={m.name} meal={m} />
-        ))}
+          {plan.meals.map((m) => (
+            <MealButton key={m.name} meal={m} />
+          ))}
         </div>
         {plan.waterDrops && <WaterDroplets total={plan.waterDrops} />}
       </div>
