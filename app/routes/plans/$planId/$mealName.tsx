@@ -1,7 +1,7 @@
-import type { Plan, Macronutrient, Meal, MealNeed } from "@prisma/client";
+import type { MealNeed } from "@prisma/client";
 import { useLoaderData } from "@remix-run/react";
 import type { LoaderFunction } from "@remix-run/server-runtime";
-import { ChangeEvent, useMemo } from "react";
+import { ClientOnly } from "remix-utils";
 import invariant from "tiny-invariant";
 import { Checkbox, links as checkboxLinks } from "~/components/Checkbox";
 import { prisma } from "~/db.server";
@@ -47,23 +47,32 @@ function MacroRow({
 }: MacroRowProps) {
   if (maximum === 0) return null;
 
-  function tickChange(e: ChangeEvent<HTMLInputElement>) {
-    onChange({ macroName, count: value + (e.target.checked ? 1 : -1) });
-  }
-
   return (
     <div className="flex flex-row">
-      <span className="w-24">{macroName}</span>
+      <span className="mt-2 w-24 text-xl">{macroName}</span>
       <div className="flex flex-row items-center">
         {Array(maximum)
           .fill(null)
           .map((_, ix) => (
-            <Checkbox
+            <ClientOnly
               key={ix}
-              dashed={ix > minimum}
-              checked={ix < value}
-              onChange={tickChange}
-            />
+              fallback={
+                <Checkbox dashed={ix > minimum} disabled checked={false} />
+              }
+            >
+              {() => (
+                <Checkbox
+                  dashed={ix > minimum}
+                  checked={ix < value}
+                  onChange={() =>
+                    onChange({
+                      macroName,
+                      count: value + (ix < value ? -1 : 1),
+                    })
+                  }
+                />
+              )}
+            </ClientOnly>
           ))}
       </div>
     </div>
@@ -82,8 +91,8 @@ export default function PlanView() {
   };
   return (
     <main className="mx-auto w-64">
-      <h1 className="mb-4 text-xl">{mealName}</h1>
-      <div className="flex flex-col">
+      <h1 className="mb-8 text-4xl">{mealName}</h1>
+      <div className={`flex flex-col`}>
         {needs.map((n) => (
           <MacroRow
             key={n.macroName}

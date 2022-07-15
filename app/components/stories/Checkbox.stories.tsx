@@ -7,7 +7,7 @@ export default {
   component: Checkbox,
   decorators: [
     (Story) => (
-      <div className="max-w-md">
+      <div className="mx-auto flex max-w-md justify-center">
         <Story />
       </div>
     ),

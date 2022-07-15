@@ -5,6 +5,7 @@ export const links = () => [{ rel: "stylesheet", href: styles }];
 
 interface CheckboxProps {
   checked?: boolean;
+  disabled?: boolean;
   dashed?: boolean;
   onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
 }
@@ -13,6 +14,7 @@ export function Checkbox(props: CheckboxProps) {
     <label className="c-custom-checkbox">
       <input
         type="checkbox"
+        disabled={props.disabled}
         checked={props.checked}
         onChange={props.onChange}
       />

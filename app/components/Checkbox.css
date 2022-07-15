@@ -1,11 +1,14 @@
 .c-custom-checkbox {
   cursor: pointer;
   display: flex;
-  align-items: start;
-  --checked-state-bg-color: hsl(350, 95%, 58%);
+  align-items: flex-start;
+  --checked-state-bg-color: #4f46e5;
   --checked-state-check-color: #fff;
+  --disabled-state-bg-color: rgb(170, 170, 170);
   --outline-color: var(--checked-state-bg-color);
   --outline-offset: 2px;
+  transform: scale(2);
+  margin: 12px;
 }
 
 .c-custom-checkbox input[type="checkbox"] {
@@ -36,6 +39,11 @@
 }
 .c-custom-checkbox input[type="checkbox"]:checked + svg .cb-cm {
   stroke: var(--checked-state-check-color);
+}
+
+input[type="checkbox"]:disabled + svg .cb-bg {
+  fill: var(--disabled-state-bg-color);
+  stroke: var(--disabled-state-bg-color);
 }
 
 .c-custom-checkbox input[type="checkbox"]:focus + svg {
