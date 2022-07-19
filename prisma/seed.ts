@@ -1,43 +1,104 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function seed() {
-  const email = "rachel@remix.run";
+  const planId = "test";
 
   // cleanup the existing database
-  await prisma.user.delete({ where: { email } }).catch(() => {
+  await prisma.plan.delete({ where: { id: planId } }).catch(() => {
     // no worries if it doesn't exist yet
   });
 
-  const hashedPassword = await bcrypt.hash("racheliscool", 10);
-
-  const user = await prisma.user.create({
+  const plan = await prisma.plan.create({
     data: {
-      email,
-      password: {
-        create: {
-          hash: hashedPassword,
+      id: planId,
+      name: "Testing plan",
+      macros: {
+        createMany: {
+          data: [
+            {
+              name: "Protein",
+              guidance: "can i offer you an egg in this trying time?",
+            },
+            {
+              name: "Carbs",
+              guidance: "This is my body",
+            },
+            {
+              name: "Fats",
+              guidance: "these tend to be tasty",
+            },
+          ],
+        },
+      },
+      meals: {
+        createMany: {
+          data: [
+            {
+              name: "Breakfast",
+            },
+            {
+              name: "Morning snack",
+            },
+            {
+              name: "Lunch",
+            },
+            { name: "Afternoon snack" },
+            {
+              name: "Dinner",
+            },
+          ],
         },
       },
     },
   });
 
-  await prisma.note.create({
-    data: {
-      title: "My first note",
-      body: "Hello, world!",
-      userId: user.id,
-    },
-  });
-
-  await prisma.note.create({
-    data: {
-      title: "My second note",
-      body: "Hello, world!",
-      userId: user.id,
-    },
+  await prisma.mealNeed.createMany({
+    data: [
+      {
+        planId: plan.id,
+        mealName: "Breakfast",
+        macroName: "Protein",
+        minimum: 1,
+        maximum: 3,
+      },
+      {
+        planId: plan.id,
+        mealName: "Breakfast",
+        macroName: "Carbs",
+        minimum: 2,
+        maximum: 2,
+      },
+      {
+        planId: plan.id,
+        mealName: "Breakfast",
+        macroName: "Fats",
+        minimum: 2,
+        maximum: 3,
+      },
+      {
+        planId: plan.id,
+        mealName: "Morning snack",
+        macroName: "Protein",
+        minimum: 0,
+        maximum: 1,
+      },
+      {
+        planId: plan.id,
+        mealName: "Morning snack",
+        macroName: "Carbs",
+        minimum: 1,
+        maximum: 1,
+      },
+      {
+        planId: plan.id,
+        mealName: "Morning snack",
+        macroName: "Fats",
+        minimum: 0,
+        maximum: 1,
+      },
+    ],
   });
 
   console.log(`Database has been seeded. 🌱`);
