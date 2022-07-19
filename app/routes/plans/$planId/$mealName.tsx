@@ -1,5 +1,5 @@
 import type { MealNeed } from "@prisma/client";
-import { useLoaderData } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
 import type { LoaderFunction } from "@remix-run/server-runtime";
 import { ClientOnly } from "remix-utils";
 import invariant from "tiny-invariant";
@@ -91,6 +91,12 @@ export default function PlanView() {
   };
   return (
     <main className="mx-auto w-64">
+      <Link
+        to={`/plans/${plan.id}`}
+        className="text-blue-600 underline visited:text-purple-600 hover:text-blue-800"
+      >
+        back
+      </Link>
       <h1 className="mb-8 text-4xl">{mealName}</h1>
       <div className={`flex flex-col`}>
         {needs.map((n) => (
@@ -101,6 +107,28 @@ export default function PlanView() {
             onChange={onTickChange}
           />
         ))}
+        <ClientOnly
+          fallback={
+            <textarea
+              value="loading..."
+              disabled
+              rows={3}
+              className="mt-4 rounded"
+            />
+          }
+        >
+          {() => (
+            <textarea
+              className="mt-4 rounded"
+              value={mealState?.notes}
+              placeholder={"notes"}
+              rows={3}
+              onChange={(e) =>
+                store.setNotes({ meal: mealName, notes: e.target.value })
+              }
+            />
+          )}
+        </ClientOnly>
       </div>
     </main>
   );
