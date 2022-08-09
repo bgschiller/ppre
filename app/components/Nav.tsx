@@ -20,7 +20,7 @@ export function Nav({ sticky = false }: NavProps) {
   return (
     <Popover
       as="nav"
-      className={`flex justify-between bg-white p-2 ${
+      className={`mb-16 flex justify-between bg-white p-2 ${
         sticky ? "sticky top-0 z-50" : ""
       }`}
     >

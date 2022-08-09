@@ -1,4 +1,4 @@
-import { Link } from "@remix-run/react";
+// import { Link } from "@remix-run/react";
 
 function scrollToTop() {
   document.body.scrollTop = document.documentElement.scrollTop = 0;
@@ -6,18 +6,18 @@ function scrollToTop() {
 
 export function Footer() {
   return (
-    <footer className="bg-[#f5f5f5]">
+    <footer className="absolute bottom-0 right-0 left-0 bg-[#f5f5f5]">
       <div className="mh-20 grid grid-cols-6 bg-indigo-200 p-6 leading-8 sm:grid-cols-2 lg:grid-cols-3">
         <div className="col-span-5 grid grid-cols-1 sm:col-span-1 lg:col-span-2 lg:grid-cols-2 lg:flex-row">
-          <p className="">&copy; 2022. All rights reserved.</p>
-          <div className="flex flex-col leading-8 sm:flex-row lg:m-auto">
+          <p className="">&copy; Brian Schiller 2022. All rights reserved.</p>
+          {/* <div className="flex flex-col leading-8 sm:flex-row lg:m-auto">
             <Link to="/terms-and-conditions" className="mr-2">
               Terms and conditions
             </Link>
             <Link to="/privacy-policy" className="">
               Privacy policy
             </Link>
-          </div>
+          </div> */}
         </div>
         <div className="col-span-1 ml-auto flex items-center leading-8">
           <a href="#top" className="flex " onClick={scrollToTop}>

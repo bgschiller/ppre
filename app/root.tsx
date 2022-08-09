@@ -110,7 +110,7 @@ export default function App() {
         <Links />
         {alternateLinks}
       </head>
-      <body className="flex h-screen flex-col justify-between">
+      <body className="flex min-h-screen flex-col">
         <Nav sticky={true} />
         <Outlet />
         <Footer />

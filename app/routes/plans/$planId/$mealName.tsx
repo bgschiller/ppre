@@ -6,7 +6,7 @@ import invariant from "tiny-invariant";
 import { Checkbox, links as checkboxLinks } from "~/components/Checkbox";
 import { prisma } from "~/db.server";
 import { useMatchesData } from "~/utils";
-import { useDailyCheckbox } from "../daily-checkboxes";
+import { useDailyCheckbox, useNotesStore } from "../daily-checkboxes";
 import { LoaderData as PlanDetailData } from "./index";
 
 export function links() {
@@ -78,16 +78,46 @@ function MacroRow({
     </div>
   );
 }
+
+function Notes({ mealName }: { mealName: string }) {
+  const notesStore = useNotesStore();
+
+  return (
+    <ClientOnly
+      fallback={
+        <textarea
+          value="loading..."
+          disabled
+          rows={3}
+          className="mt-4 rounded"
+        />
+      }
+    >
+      {() => (
+        <textarea
+          className="mt-4 rounded"
+          value={notesStore.notes[mealName]}
+          placeholder={"notes"}
+          rows={3}
+          onChange={(e) =>
+            notesStore.setNotes({ meal: mealName, notes: e.target.value })
+          }
+        />
+      )}
+    </ClientOnly>
+  );
+}
+
 export default function PlanView() {
   const { mealName, needs } = useLoaderData<LoaderData>();
   const { plan } = useMatchesData(
     "routes/plans/$planId"
   ) as unknown as PlanDetailData;
 
-  const store = useDailyCheckbox();
-  const mealState = store.meals[mealName];
+  const mealStore = useDailyCheckbox();
+  const mealState = mealStore.meals[mealName];
   const onTickChange: MacroRowProps["onChange"] = ({ macroName, count }) => {
-    store.setTicks({ meal: mealName, macro: macroName, ticks: count });
+    mealStore.setTicks({ meal: mealName, macro: macroName, ticks: count });
   };
   return (
     <main className="mx-auto w-64">
@@ -103,32 +133,11 @@ export default function PlanView() {
           <MacroRow
             key={n.macroName}
             {...n}
-            value={mealState?.ticks?.[n.macroName] || 0}
+            value={mealState?.[n.macroName] || 0}
             onChange={onTickChange}
           />
         ))}
-        <ClientOnly
-          fallback={
-            <textarea
-              value="loading..."
-              disabled
-              rows={3}
-              className="mt-4 rounded"
-            />
-          }
-        >
-          {() => (
-            <textarea
-              className="mt-4 rounded"
-              value={mealState?.notes}
-              placeholder={"notes"}
-              rows={3}
-              onChange={(e) =>
-                store.setNotes({ meal: mealName, notes: e.target.value })
-              }
-            />
-          )}
-        </ClientOnly>
+        <Notes mealName={mealName} />
       </div>
     </main>
   );

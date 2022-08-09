@@ -9,3 +9,7 @@ export const planId = createCookie("plan-id", {
   domain: HOST,
   secrets: ["s3cret1"],
 });
+
+export const dailyCheckboxes = createCookie("daily-checkboxes", {
+  domain: HOST,
+});
