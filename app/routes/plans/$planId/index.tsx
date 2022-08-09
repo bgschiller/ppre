@@ -35,7 +35,7 @@ export const loader: LoaderFunction = async ({
 };
 
 function Exercise() {
-  const [exercise, setExercise] = useNotesStore((state) => [
+  const [exercise, setExercise] = useDailyCheckbox((state) => [
     state.exercise,
     state.setExercise,
   ]);

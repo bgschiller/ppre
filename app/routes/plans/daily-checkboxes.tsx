@@ -7,8 +7,6 @@ export interface NotesStore {
   _hasHydrated: boolean;
   lastEditUnixMs: number;
   notes: { [mealName: string]: string };
-  exercise: boolean;
-  setExercise(b: boolean): void;
   setHasHydrated(b: boolean): void;
   clear(): void;
   setNotes(args: { meal: string; notes: string }): void;
@@ -17,7 +15,6 @@ export interface NotesStore {
 const notesStateDefn: StateCreator<NotesStore, [], [], NotesStore> = (set) => ({
   _hasHydrated: false,
   lastEditUnixMs: +new Date(),
-  exercise: false,
   notes: {},
   setHasHydrated(b) {
     set(
@@ -26,13 +23,7 @@ const notesStateDefn: StateCreator<NotesStore, [], [], NotesStore> = (set) => ({
       })
     );
   },
-  setExercise(b) {
-    set(
-      produce((store) => {
-        store.exercise = b;
-      })
-    );
-  },
+
   clear() {
     set(
       produce((store) => {
@@ -59,7 +50,6 @@ export const useNotesStore = create<NotesStore>(
     onRehydrateStorage: () => (state) => {
       state?.setHasHydrated(true);
     },
-    getStorage: () => CookieStorage,
   })
 );
 
@@ -71,8 +61,10 @@ export interface DailyCheckboxStore {
   lastEditUnixMs: number;
   meals: { [mealName: string]: MealData | undefined };
   glassesWater: number;
-  clear(): void;
+  exercise: boolean;
+  setExercise(b: boolean): void;
   setGlassesWater(n: number): void;
+  clear(): void;
   setHasHydrated(b: boolean): void;
   setTicks(args: { meal: string; macro: string; ticks: number }): void;
 }
@@ -86,7 +78,15 @@ const checkboxStateDefn: StateCreator<
   _hasHydrated: false,
   lastEditUnixMs: +new Date(),
   glassesWater: 0,
+  exercise: false,
   meals: {},
+  setExercise(b) {
+    set(
+      produce((store) => {
+        store.exercise = b;
+      })
+    );
+  },
   clear() {
     set(
       produce((store) => {
@@ -129,5 +129,6 @@ export const useDailyCheckbox = create<DailyCheckboxStore>(
     onRehydrateStorage: () => (state) => {
       state?.setHasHydrated(true);
     },
+    getStorage: () => CookieStorage,
   })
 );

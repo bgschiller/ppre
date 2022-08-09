@@ -5,7 +5,7 @@ const HOST =
 
 const cookieSuffix = `${
   HOST ? `Domain=${HOST}; ` : ""
-} SameSite=Strict; Secure`;
+} SameSite=Strict; Secure; Path=/`;
 export const CookieStorage: StateStorage = {
   getItem(name: string): string | null {
     const value = document.cookie
