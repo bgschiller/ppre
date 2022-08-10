@@ -109,6 +109,7 @@ const checkboxStateDefn: StateCreator<
         store.lastEditUnixMs = +new Date();
         store.glassesWater = 0;
         store.meals = {};
+        store.exercise = false;
       })
     );
   },

@@ -9,6 +9,54 @@ async function seed() {
   await prisma.plan.delete({ where: { id: planId } }).catch(() => {
     // no worries if it doesn't exist yet
   });
+  await prisma.plan.delete({ where: { id: "morgan-plan" } }).catch(() => {
+    // no worries if it doesn't exist yet
+  });
+
+  const morganPlan = await prisma.plan.create({
+    data: {
+      id: "morgan-plan",
+      name: "Morgan's Plan",
+      macros: {
+        createMany: {
+          data: [
+            {
+              name: "Protein",
+              guidance: "",
+            },
+            {
+              name: "Starch",
+              guidance: "",
+            },
+            {
+              name: "Produce",
+              guidance: "",
+            },
+            {
+              name: "Fat",
+              guidance: "",
+            },
+            {
+              name: "Dairy",
+              guidance: "",
+            },
+          ],
+        },
+      },
+      meals: {
+        createMany: {
+          data: [
+            {
+              name: "Breakfast",
+            },
+            { name: "Lunch" },
+            { name: "Afternoon Snack" },
+            { name: "Dinner" },
+          ],
+        },
+      },
+    },
+  });
 
   const plan = await prisma.plan.create({
     data: {
@@ -52,6 +100,75 @@ async function seed() {
         },
       },
     },
+  });
+
+  await prisma.mealNeed.createMany({
+    data: [
+      ...(
+        [
+          ["Protein", 3],
+          ["Starch", 2],
+          ["Produce", 1],
+          ["Dairy", 2],
+        ] as const
+      ).map(([macroName, num]) => ({
+        planId: "morganPlan",
+        mealName: "Breakfast",
+        macroName,
+        minimum: num,
+        maximum: num,
+      })),
+      ...(
+        [
+          ["Protein", 3],
+          ["Starch", 3],
+          ["Produce", 2],
+          ["Fats", 2],
+          ["Dairy", 1],
+        ] as const
+      ).map(([macroName, num]) => ({
+        planId: "morganPlan",
+        mealName: "Lunch",
+        macroName,
+        minimum: num,
+        maximum: num,
+      })),
+      ...(
+        [
+          ["Protein", 1],
+          ["Produce", 1],
+        ] as const
+      ).map(([macroName, num]) => ({
+        planId: "morganPlan",
+        mealName: "Afternoon Snack",
+        macroName,
+        minimum: num,
+        maximum: num,
+      })),
+      ...(
+        [
+          ["Protein", 3],
+          ["Starch", 3],
+          ["Produce", 2],
+          ["Fat", 1],
+          ["Dairy", 1],
+        ] as const
+      ).map(([macroName, num]) => ({
+        planId: "morganPlan",
+        mealName: "Afternoon Snack",
+        macroName,
+        minimum: num,
+        maximum: num,
+      })),
+      /**
+       * Dinner
+       * 3 protein
+       * 3 starch
+       * 2 produce
+       * 1 fat
+       * 1 dairy
+       */
+    ],
   });
 
   await prisma.mealNeed.createMany({
