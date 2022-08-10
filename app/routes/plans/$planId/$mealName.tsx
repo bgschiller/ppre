@@ -1,13 +1,13 @@
 import type { MealNeed } from "@prisma/client";
 import { Link, useLoaderData } from "@remix-run/react";
 import type { LoaderFunction } from "@remix-run/server-runtime";
-import { ClientOnly } from "remix-utils";
+import { ClientOnly, useHydrated } from "remix-utils";
 import invariant from "tiny-invariant";
 import { Checkbox, links as checkboxLinks } from "~/components/Checkbox";
 import { prisma } from "~/db.server";
 import { useMatchesData } from "~/utils";
 import { useDailyCheckbox, useNotesStore } from "../daily-checkboxes";
-import { LoaderData as PlanDetailData } from "./index";
+import type { LoaderData as PlanDetailData } from "../$planId";
 
 export function links() {
   return [...checkboxLinks()];
@@ -54,25 +54,17 @@ function MacroRow({
         {Array(maximum)
           .fill(null)
           .map((_, ix) => (
-            <ClientOnly
+            <Checkbox
               key={ix}
-              fallback={
-                <Checkbox dashed={ix > minimum} disabled checked={false} />
+              dashed={ix > minimum}
+              checked={ix < value}
+              onChange={() =>
+                onChange({
+                  macroName,
+                  count: value + (ix < value ? -1 : 1),
+                })
               }
-            >
-              {() => (
-                <Checkbox
-                  dashed={ix > minimum}
-                  checked={ix < value}
-                  onChange={() =>
-                    onChange({
-                      macroName,
-                      count: value + (ix < value ? -1 : 1),
-                    })
-                  }
-                />
-              )}
-            </ClientOnly>
+            />
           ))}
       </div>
     </div>
@@ -86,7 +78,8 @@ function Notes({ mealName }: { mealName: string }) {
     <ClientOnly
       fallback={
         <textarea
-          value="loading..."
+          key="server"
+          placeholder="loading..."
           disabled
           rows={3}
           className="mt-4 rounded"
@@ -95,6 +88,7 @@ function Notes({ mealName }: { mealName: string }) {
     >
       {() => (
         <textarea
+          key="client"
           className="mt-4 rounded"
           value={notesStore.notes[mealName]}
           placeholder={"notes"}
@@ -110,12 +104,18 @@ function Notes({ mealName }: { mealName: string }) {
 
 export default function PlanView() {
   const { mealName, needs } = useLoaderData<LoaderData>();
-  const { plan } = useMatchesData(
+  const { plan, checkboxes } = useMatchesData(
     "routes/plans/$planId"
   ) as unknown as PlanDetailData;
 
+  const hydrated = useHydrated();
+
   const mealStore = useDailyCheckbox();
-  const mealState = mealStore.meals[mealName];
+  console.log("checkboxes", checkboxes);
+  const mealState = hydrated
+    ? mealStore.meals[mealName]
+    : checkboxes.meals[mealName];
+  console.log("mealState", mealState);
   const onTickChange: MacroRowProps["onChange"] = ({ macroName, count }) => {
     mealStore.setTicks({ meal: mealName, macro: macroName, ticks: count });
   };

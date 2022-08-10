@@ -2,6 +2,7 @@ import create, { StateCreator } from "zustand";
 import produce from "immer";
 import { persist } from "zustand/middleware";
 import { CookieStorage } from "~/cookie-storage.client";
+import { z } from "zod";
 
 export interface NotesStore {
   _hasHydrated: boolean;
@@ -53,20 +54,35 @@ export const useNotesStore = create<NotesStore>(
   })
 );
 
-// eg, { Protein: 2, Grains: 3, notes: "..." }
-type MealData = { [macro: string]: number };
+export const DailyCheckboxSchema = z.object({
+  lastEditUnixMs: z.number(),
+  meals: z.record(z.record(z.number().or(z.undefined())).or(z.undefined())),
+  glassesWater: z.number(),
+  exercise: z.boolean(),
+});
 
-export interface DailyCheckboxStore {
-  _hasHydrated: boolean;
-  lastEditUnixMs: number;
-  meals: { [mealName: string]: MealData | undefined };
-  glassesWater: number;
-  exercise: boolean;
+export type DailyCheckboxState = z.infer<typeof DailyCheckboxSchema>;
+
+export const DailyCheckboxPersistedSchema = z.object({
+  state: DailyCheckboxSchema,
+  version: z.literal(1),
+});
+
+export type DailyCheckboxStore = DailyCheckboxState & {
   setExercise(b: boolean): void;
   setGlassesWater(n: number): void;
   clear(): void;
   setHasHydrated(b: boolean): void;
   setTicks(args: { meal: string; macro: string; ticks: number }): void;
+};
+
+export function emptyDailyCheckboxState(): DailyCheckboxState {
+  return {
+    lastEditUnixMs: 0,
+    glassesWater: 0,
+    exercise: false,
+    meals: {},
+  };
 }
 
 const checkboxStateDefn: StateCreator<

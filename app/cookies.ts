@@ -1,4 +1,5 @@
 import { createCookie } from "@remix-run/node";
+import { createRawCookie } from "./raw-cookies";
 import { getEnv } from "./utils";
 
 const ORIGIN = getEnv("PUBLICLY_AVAILABLE_ORIGIN", { default: null });
@@ -10,6 +11,6 @@ export const planId = createCookie("plan-id", {
   secrets: ["s3cret1"],
 });
 
-export const dailyCheckboxes = createCookie("daily-checkboxes", {
+export const dailyCheckboxes = createRawCookie("daily-checkboxes", {
   domain: HOST,
 });
