@@ -112,7 +112,7 @@ async function seed() {
           ["Dairy", 2],
         ] as const
       ).map(([macroName, num]) => ({
-        planId: "morganPlan",
+        planId: "morgan-plan",
         mealName: "Breakfast",
         macroName,
         minimum: num,
@@ -123,11 +123,11 @@ async function seed() {
           ["Protein", 3],
           ["Starch", 3],
           ["Produce", 2],
-          ["Fats", 2],
+          ["Fat", 2],
           ["Dairy", 1],
         ] as const
       ).map(([macroName, num]) => ({
-        planId: "morganPlan",
+        planId: "morgan-plan",
         mealName: "Lunch",
         macroName,
         minimum: num,
@@ -139,7 +139,7 @@ async function seed() {
           ["Produce", 1],
         ] as const
       ).map(([macroName, num]) => ({
-        planId: "morganPlan",
+        planId: "morgan-plan",
         mealName: "Afternoon Snack",
         macroName,
         minimum: num,
@@ -154,20 +154,12 @@ async function seed() {
           ["Dairy", 1],
         ] as const
       ).map(([macroName, num]) => ({
-        planId: "morganPlan",
-        mealName: "Afternoon Snack",
+        planId: "morgan-plan",
+        mealName: "Dinner",
         macroName,
         minimum: num,
         maximum: num,
       })),
-      /**
-       * Dinner
-       * 3 protein
-       * 3 starch
-       * 2 produce
-       * 1 fat
-       * 1 dairy
-       */
     ],
   });
 

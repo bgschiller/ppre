@@ -113,7 +113,7 @@ export default function App() {
       <body className="flex min-h-screen flex-col">
         <Nav sticky={true} />
         <Outlet />
-        <Footer />
+        {/* <Footer /> */}
         <ScrollRestoration />
         <script
           suppressHydrationWarning

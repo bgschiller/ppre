@@ -17,19 +17,19 @@ function Exercise({ checked }: { checked: boolean }) {
   return (
     <ClientOnly
       fallback={
-        <button className="my-2 flex w-full select-none items-center bg-purple-600 px-4 text-white ">
-          <Star className="my-2" filled={checked} />
+        <button className="my-2 flex w-full select-none items-center justify-between bg-purple-600 px-4 text-white">
           <span className="pl-2">Exercise</span>
+          <Star className="my-2 pr-2" filled={checked} />
         </button>
       }
     >
       {() => (
         <button
-          className="my-2 flex w-full select-none items-center bg-purple-600 px-4 text-white hover:bg-purple-700"
+          className="my-2 flex w-full select-none items-center justify-between bg-purple-600 px-4 text-white hover:bg-purple-700"
           onClick={() => setExercise(!exercise)}
         >
-          <Star className="my-2" filled={exercise} />
           <span className="pl-2">Exercise</span>
+          <Star className="my-2 pr-2" filled={exercise} />
         </button>
       )}
     </ClientOnly>
@@ -84,12 +84,12 @@ export default function PlanView() {
     clearNotes();
   }, [clearChecks, clearNotes]);
   return (
-    <main className="mx-auto">
+    <main className="mx-auto w-64">
       <h1 className="mb-4 select-none text-center text-xl">
         {plan.name || "(untitled-plan)"}
       </h1>
       <div className="flex flex-row">
-        <div className="flex flex-col">
+        <div className="flex w-full flex-col">
           {plan.meals.map((m) => (
             <MealButton key={m.name} meal={m} />
           ))}
